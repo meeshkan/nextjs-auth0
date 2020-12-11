@@ -15,7 +15,7 @@ export type CallbackOptions = {
     res: NextApiResponse,
     session: ISession,
     state: Record<string, any>
-  ) => Promise<ISession>;
+  ) => Promise<{ session: ISession, options: { redirectTo: string } }>;
 };
 
 export default function callbackHandler(
@@ -52,16 +52,19 @@ export default function callbackHandler(
     // Get the claims without any OIDC specific claim.
     let session = getSessionFromTokenSet(tokenSet);
 
-    // Run the identity validated hook.
+    // Temporary hack from: https://github.com/auth0/nextjs-auth0/issues/139#issuecomment-694252150
+    let callbackOptions;
     if (options && options.onUserLoaded) {
-      session = await options.onUserLoaded(req, res, session, decodedState);
+      const { session: _session, options: _options } = await options.onUserLoaded(req, res, session, decodedState);
+      session = _session
+      callbackOptions = _options
     }
 
     // Create the session.
     await sessionStore.save(req, res, session);
+    // Redirect to the homepage or custom url
+    const redirectTo = (callbackOptions && callbackOptions.redirectTo) || (options && options.redirectTo) || decodedState.redirectTo || '/';
 
-    // Redirect to the homepage or custom url.
-    const redirectTo = (options && options.redirectTo) || decodedState.redirectTo || '/';
     res.writeHead(302, {
       Location: redirectTo
     });

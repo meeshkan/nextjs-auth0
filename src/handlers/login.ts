@@ -76,6 +76,7 @@ export default function loginHandler(settings: IAuth0Settings, clientProvider: I
 
     // Create the authorization url.
     const client = await clientProvider();
+    // @ts-ignore
     const authorizationUrl = client.authorizationUrl({
       redirect_uri: settings.redirectUri,
       scope: settings.scope,
